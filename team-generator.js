@@ -54,6 +54,14 @@ export async function showSelector() {
 </label>
 
   `).join('');
+// Allow clicking the card instead of the checkbox
+document.querySelectorAll('.selectable-card').forEach(card => {
+  card.addEventListener('click', (e) => {
+    const input = card.querySelector('input[type="checkbox"]');
+    input.checked = !input.checked;
+    card.classList.toggle('selected', input.checked);
+  });
+});
 
   // Add click-to-toggle functionality
   selector.querySelectorAll('.selectable-card').forEach(card => {
