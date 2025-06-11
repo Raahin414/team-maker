@@ -1,1 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel</title>
+</head>
+<body>
+  <h1>Admin Panel</h1>
+  <div id="loginSection">
+    <input id="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button id="btnLogin">Login</button>
+    <p id="loginError"></p>
+  </div>
+  <div id="adminSection" style="display:none;">
+    <h2>Add Match</h2>
+    <select id="playerSelect"></select>
+    <input type="number" id="goals" placeholder="Goals">
+    <button id="addMatch">Submit</button>
+  </div>
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
 
