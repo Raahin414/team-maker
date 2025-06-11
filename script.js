@@ -7,7 +7,7 @@ async function loadPlayers() {
   const players = [];
   for (const doc of snapshot.docs) {
     const d = doc.data();
-    const imgUrl = await getDownloadURL(ref(storage, `avatars/${doc.id}.jpg`)).catch(() => 'default.png');
+    const imgUrl = `images/${doc.id}.jpg`;
     players.push({ id: doc.id, imgUrl, ...d });
   }
   renderPlayers(players);
