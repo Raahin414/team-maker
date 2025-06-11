@@ -233,4 +233,15 @@ button:hover {
   margin-top: 8px;
   transform: scale(1.2);
 }
+/* Highlight selected player cards */
+.selectable-card input[type="checkbox"]:checked + img,
+.selectable-card input[type="checkbox"]:checked + h3,
+.selectable-card input[type="checkbox"]:checked + p {
+  filter: brightness(0.8);
+}
+
+.selectable-card input[type="checkbox"]:checked {
+  border: 2px solid #2ecc71;
+  background-color: rgba(46, 204, 113, 0.2);
+}
 
