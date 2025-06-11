@@ -45,13 +45,14 @@ export async function showSelector() {
 
   const selector = document.getElementById("playerSelector");
   selector.innerHTML = players.map(p => `
-    <label class="player selectable-card" style="cursor: pointer;">
-      <input type="checkbox" value="${p.id}" style="display: none;">
-      <img src="images/${p.id}.jpg" alt="${p.name}" onerror="this.onerror=null;this.src='images/default.jpg';">
-      <h3 style="color: #eee;">${p.name}</h3>
-      <p style="color: #aaa;">${p.position}</p>
-      <p style="font-weight: bold; color: #888;">Click to Select</p>
-    </label>
+    <label class="player selectable-card" style="cursor: pointer;" data-id="${p.id}">
+  <input type="checkbox" value="${p.id}" style="display: none;">
+  <img src="images/${p.id}.jpg" alt="${p.name}">
+  <h3>${p.name}</h3>
+  <p>${p.position}</p>
+  <p style="font-weight: bold; color: #ccc;">Click to Select</p>
+</label>
+
   `).join('');
 
   // Add click-to-toggle functionality
