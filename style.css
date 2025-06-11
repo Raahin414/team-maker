@@ -247,13 +247,17 @@ button:hover {
 }
 #teamWrapper {
   display: flex;
-  justify-content: center;
-  gap: 30px;
+  justify-content: space-around;
+  gap: 40px;
+  margin-top: 30px;
   flex-wrap: wrap;
-  margin-top: 20px;
 }
 
 #teamA, #teamB {
+  display: flex;
+  flex-direction: column; /* 🟢 Arrange player cards vertically within each team */
+  gap: 16px;
   flex: 1 1 300px;
+  max-width: 400px;
 }
 
