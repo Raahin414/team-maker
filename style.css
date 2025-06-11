@@ -3,13 +3,14 @@
 /* --------- Base Styles --------- */
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(to bottom right, #1e5631, #a4de02);
+  background-image: url('https://images.unsplash.com/photo-1517927033932-b3d18e61fb3a?fit=crop&w=1600&q=80');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   margin: 0;
   padding: 20px;
   color: #fff;
 }
-
-
 
 
 h1 {
