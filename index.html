@@ -14,9 +14,20 @@
     <h2>🏆 Top Scorers</h2>
     <div id="scorersList"></div>
   </div>
+  <h2>Select Players for Today's Match</h2>
+<div id="playerSelector" class="grid"></div>
+<button onclick="generateFromSelection()">Generate Best Teams</button>
+
+<h2>Team A</h2>
+<div id="teamA" class="grid"></div>
+
+<h2>Team B</h2>
+<div id="teamB" class="grid"></div>
+
   <a href="admin.html">🔐 Admin (Update Matches)</a>
 
   <script type="module" src="firebase.js"></script>
   <script type="module" src="script.js"></script>
+  <script type="module" src="team-generator.js"></script>
 </body>
 </html>
