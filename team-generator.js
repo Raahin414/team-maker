@@ -45,16 +45,15 @@ export async function showSelector() {
 
   const selector = document.getElementById("playerSelector");
   selector.innerHTML = players.map(p => `
-    <div class="player">
-      <img src="${p.imgUrl || `images/${p.id}.jpg`}" alt="${p.name}">
-      <h3>${p.name}</h3>
-      <p>${p.position}</p>
-      <label>
-        <input type="checkbox" value="${p.id}">
-        Available Today
-      </label>
-    </div>
-  `).join('');
+  <label class="player selectable-card" style="cursor: pointer;">
+    <input type="checkbox" value="${p.id}" style="display: none;">
+    <img src="images/${p.id}.jpg" alt="${p.name}">
+    <h3>${p.name}</h3>
+    <p>${p.position}</p>
+    <p style="font-weight: bold; color: #ccc;">Click to Select</p>
+  </label>
+`).join('');
+
 
   // Store all players for quick access
   window.allPlayers = Object.fromEntries(players.map(p => [p.id, p]));
