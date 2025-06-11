@@ -38,17 +38,24 @@ h2 {
 a {
   display: block;
   text-align: center;
-  margin-top: 40px;
-  color: #3498db;
+  margin: 50px auto 20px;
+  color: #ffffff;
   font-weight: bold;
   text-decoration: none;
-  font-size: 16px;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+  font-size: 18px;
+  background-color: #3498db;
+  padding: 10px 20px;
+  width: fit-content;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s;
 }
 
 a:hover {
-  color: #1abc9c;
+  background-color: #1abc9c;
+  color: #ffffff;
 }
+
 
 /* --------- Grid Layout --------- */
 .grid {
