@@ -75,11 +75,12 @@ function renderTeam(containerId, team) {
   const container = document.getElementById(containerId);
   container.innerHTML = team.map(p => `
     <div class="player">
-      <img src="${p.imgUrl || `images/${p.id}.jpg`}" alt="${p.name}">
+      <img src="images/${p.id}.jpg" alt="${p.name}">
       <h3>${p.name} – ${p.position}</h3>
       <p>Matches: ${p.matches}, Goals: ${p.goals}</p>
     </div>
   `).join('');
 }
+
 
 showSelector();
