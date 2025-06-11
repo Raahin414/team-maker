@@ -4,12 +4,13 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-aut
 import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 const firebaseConfig = {
-  apiKey: "team-maker-764bb",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "XXXX",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDNhT3JE7Q86cvW2krzeTLX1goNcCMMDzs",
+  authDomain: "team-maker-764bb.firebaseapp.com",
+  projectId: "team-maker-764bb",
+  storageBucket: "team-maker-764bb.firebasestorage.app",
+  messagingSenderId: "1097826528288",
+  appId: "1:1097826528288:web:c840e861c916f8184ca045",
+  measurementId: "G-89QHFM9GN7"
 };
 
 const app = initializeApp(firebaseConfig);
