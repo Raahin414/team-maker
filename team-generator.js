@@ -7,7 +7,7 @@ function playerScore(p) {
   return (gpm * 3) + (p.goals * 1.5) + (p.matches * 0.5);
 }
 
-// Advanced team balancing logic
+// Advanced team balancing logic with constraints
 function balanceTeams(players) {
   const keepers = players.filter(p => p.position.toLowerCase() === "goalkeeper");
   const defenders = players.filter(p => p.position.toLowerCase() === "defender");
@@ -16,6 +16,11 @@ function balanceTeams(players) {
 
   const teamA = [], teamB = [];
   let starA = 0, starB = 0;
+
+  // Constraint: Player with ID "1" and "5" must not be in same team
+  const player1 = players.find(p => p.id === "1");
+  const player5 = players.find(p => p.id === "5");
+  const separateConstraint = player1 && player5;
 
   // 1. Force split keepers
   keepers.forEach((keeper, i) => {
@@ -40,14 +45,32 @@ function balanceTeams(players) {
   Object.keys(tierGroups).sort((a, b) => a - b).forEach(tier => {
     const group = tierGroups[tier];
     group.sort((a, b) => b.stars - a.stars);
-    group.forEach((atk, i) => {
+    group.forEach(atk => {
       const stars = atk.stars || 0;
-      if (starA <= starB) {
-        teamA.push(atk);
-        starA += stars;
+
+      const assignToA = starA <= starB;
+      if (assignToA) {
+        if (separateConstraint && teamA.includes(player1) && atk.id === "5") {
+          teamB.push(atk);
+          starB += stars;
+        } else if (separateConstraint && teamA.includes(player5) && atk.id === "1") {
+          teamB.push(atk);
+          starB += stars;
+        } else {
+          teamA.push(atk);
+          starA += stars;
+        }
       } else {
-        teamB.push(atk);
-        starB += stars;
+        if (separateConstraint && teamB.includes(player1) && atk.id === "5") {
+          teamA.push(atk);
+          starA += stars;
+        } else if (separateConstraint && teamB.includes(player5) && atk.id === "1") {
+          teamA.push(atk);
+          starA += stars;
+        } else {
+          teamB.push(atk);
+          starB += stars;
+        }
       }
     });
   });
