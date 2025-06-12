@@ -7,94 +7,100 @@ function playerScore(p) {
   return (gpm * 3) + (p.goals * 1.5) + (p.matches * 0.5);
 }
 
-// Balanced team logic with GK always separated
+// Enhanced team balancing with tier and star logic
 function balanceTeams(players) {
-  const keepers = players.filter(p => p.position.toLowerCase() === "goalkeeper");
-  const defenders = players.filter(p => p.position.toLowerCase() === "defender");
-  const attackers = players.filter(p => p.position.toLowerCase() === "attacker");
-  const others = players.filter(p =>
-    !["goalkeeper", "defender", "attacker"].includes(p.position.toLowerCase())
-  );
+  const keepers = players.filter(p => p.position?.toLowerCase() === "goalkeeper");
+  const defenders = players.filter(p => p.position?.toLowerCase() === "defender");
+  const attackers = players.filter(p => p.position?.toLowerCase() === "attacker");
+  const others = players.filter(p => !["goalkeeper", "defender", "attacker"].includes(p.position?.toLowerCase()));
 
   const teamA = [], teamB = [];
-  let starA = 0, starB = 0;
 
-  // ✅ 1. Force split keepers regardless of score
-  keepers.forEach((keeper, i) => {
-    if (i % 2 === 0) {
-      teamA.push(keeper);
-    } else {
-      teamB.push(keeper);
-    }
-  });
+  if (keepers.length > 0) teamA.push(keepers[0]);
+  if (keepers.length > 1) teamB.push(keepers[1]);
 
-  // ✅ 2. Randomly distribute defenders
-  defenders.forEach((defender, i) => {
-    if (i % 2 === 0) {
-      teamA.push(defender);
-    } else {
-      teamB.push(defender);
-    }
-  });
+  // Normalize stars and tiers for attackers
+  const normalizedAttackers = attackers.map(p => ({
+    ...p,
+    stars: Math.max(2, Math.min(4, p.stars ?? 2)),
+    tier: Math.max(1, Math.min(3, p.tier ?? 3))
+  }));
 
-  // ✅ 3. Sort attackers by tier first (1 is best), then stars (high to low)
-  attackers.sort((a, b) => {
-    if (a.tier !== b.tier) return a.tier - b.tier;
-    return b.stars - a.stars;
-  });
+  const bestSplit = findBestAttackerSplit(normalizedAttackers);
+  teamA.push(...bestSplit.teamA);
+  teamB.push(...bestSplit.teamB);
 
-  // ✅ 4. Distribute attackers to balance total stars
-  for (const attacker of attackers) {
-    const stars = attacker.stars || 0;
-    if (starA <= starB) {
-      teamA.push(attacker);
-      starA += stars;
-    } else {
-      teamB.push(attacker);
-      starB += stars;
-    }
-  }
-
-  // ✅ 5. Optional: Add "others" (e.g., midfielders) to balance star count
-  others.forEach(player => {
-    const stars = player.stars || 0;
-    if (starA <= starB) {
-      teamA.push(player);
-      starA += stars;
-    } else {
-      teamB.push(player);
-      starB += stars;
-    }
-  });
-
-  return { teamA, teamB };
-}
-
-  // Smart balance logic for remaining players
-  function smartDistribute(group) {
-    group.sort((a, b) => playerScore(b) - playerScore(a));
-    let scoreA = teamA.reduce((sum, p) => sum + playerScore(p), 0);
-    let scoreB = teamB.reduce((sum, p) => sum + playerScore(p), 0);
-
-    group.forEach(player => {
-      const score = playerScore(player);
-      if (scoreA <= scoreB) {
-        teamA.push(player); scoreA += score;
-      } else {
-        teamB.push(player); scoreB += score;
-      }
+  const diff = Math.abs(bestSplit.starA - bestSplit.starB);
+  if (diff > 1) {
+    defenders.forEach(def => {
+      if (bestSplit.starA < bestSplit.starB) teamA.push(def);
+      else teamB.push(def);
+    });
+  } else {
+    defenders.forEach((def, i) => {
+      if (i % 2 === 0) teamA.push(def);
+      else teamB.push(def);
     });
   }
 
-  // Priority: attackers → defenders → others
-  smartDistribute(attackers);
-  smartDistribute(defenders);
-  smartDistribute(others);
+  others.forEach((p, i) => {
+    if (i % 2 === 0) teamA.push(p);
+    else teamB.push(p);
+  });
 
   return { teamA, teamB };
 }
 
-// Selector view with card click support and image fallback
+// Exhaustive split on tier first, then star sum
+function findBestAttackerSplit(attackers) {
+  const n = attackers.length;
+  let bestDiff = Infinity;
+  let bestTierDiff = Infinity;
+  let bestTeamA = [], bestTeamB = [];
+  let bestScoreA = 0, bestScoreB = 0;
+
+  const totalComb = 1 << n;
+  for (let mask = 0; mask < totalComb; mask++) {
+    const teamA = [], teamB = [];
+    let scoreA = 0, scoreB = 0;
+    let tierA = 0, tierB = 0;
+
+    for (let i = 0; i < n; i++) {
+      const player = attackers[i];
+      if ((mask & (1 << i)) === 0) {
+        teamA.push(player);
+        scoreA += player.stars;
+        tierA += player.tier;
+      } else {
+        teamB.push(player);
+        scoreB += player.stars;
+        tierB += player.tier;
+      }
+    }
+
+    const starDiff = Math.abs(scoreA - scoreB);
+    const tierDiff = Math.abs(tierA - tierB);
+
+    if (tierDiff < bestTierDiff || (tierDiff === bestTierDiff && starDiff < bestDiff)) {
+      bestDiff = starDiff;
+      bestTierDiff = tierDiff;
+      bestTeamA = teamA;
+      bestTeamB = teamB;
+      bestScoreA = scoreA;
+      bestScoreB = scoreB;
+    }
+
+    if (bestDiff === 0 && bestTierDiff === 0) break;
+  }
+
+  return {
+    teamA: bestTeamA,
+    teamB: bestTeamB,
+    starA: bestScoreA,
+    starB: bestScoreB
+  };
+}
+
 export async function showSelector() {
   const snapshot = await getDocs(collection(db, "players"));
   const players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -110,7 +116,6 @@ export async function showSelector() {
     </label>
   `).join('');
 
-  // Click to select card
   document.querySelectorAll('.selectable-card').forEach(card => {
     card.addEventListener('click', () => {
       const checkbox = card.querySelector('input[type="checkbox"]');
@@ -122,7 +127,6 @@ export async function showSelector() {
   window.allPlayers = Object.fromEntries(players.map(p => [p.id, p]));
 }
 
-// Render each team sorted as: attacker > defender > goalkeeper > others
 function renderTeam(containerId, team) {
   const container = document.getElementById(containerId);
 
@@ -147,13 +151,11 @@ function renderTeam(containerId, team) {
   `).join('');
 }
 
-// Team generation on button click
 window.generateFromSelection = function () {
   const checked = Array.from(document.querySelectorAll('#playerSelector input[type="checkbox"]:checked'))
     .map(cb => cb.value);
   const selected = checked.map(id => window.allPlayers[id]);
 
-  // Clear old teams
   document.getElementById("teamA").innerHTML = "";
   document.getElementById("teamB").innerHTML = "";
 
