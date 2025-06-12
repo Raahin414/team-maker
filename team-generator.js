@@ -17,8 +17,9 @@ function balanceTeams(players) {
   );
 
   const teamA = [], teamB = [];
+  let starA = 0, starB = 0;
 
-  // Force split keepers regardless of score
+  // ✅ 1. Force split keepers regardless of score
   keepers.forEach((keeper, i) => {
     if (i % 2 === 0) {
       teamA.push(keeper);
@@ -26,6 +27,48 @@ function balanceTeams(players) {
       teamB.push(keeper);
     }
   });
+
+  // ✅ 2. Randomly distribute defenders
+  defenders.forEach((defender, i) => {
+    if (i % 2 === 0) {
+      teamA.push(defender);
+    } else {
+      teamB.push(defender);
+    }
+  });
+
+  // ✅ 3. Sort attackers by tier first (1 is best), then stars (high to low)
+  attackers.sort((a, b) => {
+    if (a.tier !== b.tier) return a.tier - b.tier;
+    return b.stars - a.stars;
+  });
+
+  // ✅ 4. Distribute attackers to balance total stars
+  for (const attacker of attackers) {
+    const stars = attacker.stars || 0;
+    if (starA <= starB) {
+      teamA.push(attacker);
+      starA += stars;
+    } else {
+      teamB.push(attacker);
+      starB += stars;
+    }
+  }
+
+  // ✅ 5. Optional: Add "others" (e.g., midfielders) to balance star count
+  others.forEach(player => {
+    const stars = player.stars || 0;
+    if (starA <= starB) {
+      teamA.push(player);
+      starA += stars;
+    } else {
+      teamB.push(player);
+      starB += stars;
+    }
+  });
+
+  return { teamA, teamB };
+}
 
   // Smart balance logic for remaining players
   function smartDistribute(group) {
