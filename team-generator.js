@@ -7,33 +7,46 @@ function playerScore(p) {
   return (gpm * 3) + (p.goals * 1.5) + (p.matches * 0.5);
 }
 
-// Balanced team logic using defenders and scores
+// Balanced team logic with GK always separated
 function balanceTeams(players) {
-  players.sort((a, b) => playerScore(b) - playerScore(a));
-
+  const keepers = players.filter(p => p.position.toLowerCase() === "goalkeeper");
   const defenders = players.filter(p => p.position.toLowerCase() === "defender");
-  const others = players.filter(p => p.position.toLowerCase() !== "defender");
+  const attackers = players.filter(p => p.position.toLowerCase() === "attacker");
+  const others = players.filter(p =>
+    !["goalkeeper", "defender", "attacker"].includes(p.position.toLowerCase())
+  );
 
   const teamA = [], teamB = [];
-  let scoreA = 0, scoreB = 0;
 
-  defenders.forEach((player, i) => {
-    const score = playerScore(player);
+  // Force split keepers regardless of score
+  keepers.forEach((keeper, i) => {
     if (i % 2 === 0) {
-      teamA.push(player); scoreA += score;
+      teamA.push(keeper);
     } else {
-      teamB.push(player); scoreB += score;
+      teamB.push(keeper);
     }
   });
 
-  for (const player of others) {
-    const score = playerScore(player);
-    if (scoreA <= scoreB) {
-      teamA.push(player); scoreA += score;
-    } else {
-      teamB.push(player); scoreB += score;
-    }
+  // Smart balance logic for remaining players
+  function smartDistribute(group) {
+    group.sort((a, b) => playerScore(b) - playerScore(a));
+    let scoreA = teamA.reduce((sum, p) => sum + playerScore(p), 0);
+    let scoreB = teamB.reduce((sum, p) => sum + playerScore(p), 0);
+
+    group.forEach(player => {
+      const score = playerScore(player);
+      if (scoreA <= scoreB) {
+        teamA.push(player); scoreA += score;
+      } else {
+        teamB.push(player); scoreB += score;
+      }
+    });
   }
+
+  // Priority: attackers → defenders → others
+  smartDistribute(attackers);
+  smartDistribute(defenders);
+  smartDistribute(others);
 
   return { teamA, teamB };
 }
@@ -46,25 +59,16 @@ export async function showSelector() {
   const selector = document.getElementById("playerSelector");
   selector.innerHTML = players.map(p => `
     <label class="player selectable-card" style="cursor: pointer;" data-id="${p.id}">
-  <input type="checkbox" value="${p.id}" style="display: none;">
-  <img src="images/${p.id}.jpg" alt="${p.name}">
-  <h3>${p.name}</h3>
-  <p>${p.position}</p>
-  <p style="font-weight: bold; color: #ccc;">Click to Select</p>
-</label>
-
+      <input type="checkbox" value="${p.id}" style="display: none;">
+      <img src="images/${p.id}.jpg" alt="${p.name}" onerror="this.onerror=null;this.src='images/default.jpg';">
+      <h3>${p.name}</h3>
+      <p>${p.position}</p>
+      <p style="font-weight: bold; color: #ccc;">Click to Select</p>
+    </label>
   `).join('');
-// Allow clicking the card instead of the checkbox
-document.querySelectorAll('.selectable-card').forEach(card => {
-  card.addEventListener('click', (e) => {
-    const input = card.querySelector('input[type="checkbox"]');
-    input.checked = !input.checked;
-    card.classList.toggle('selected', input.checked);
-  });
-});
 
-  // Add click-to-toggle functionality
-  selector.querySelectorAll('.selectable-card').forEach(card => {
+  // Click to select card
+  document.querySelectorAll('.selectable-card').forEach(card => {
     card.addEventListener('click', () => {
       const checkbox = card.querySelector('input[type="checkbox"]');
       checkbox.checked = !checkbox.checked;
@@ -75,10 +79,23 @@ document.querySelectorAll('.selectable-card').forEach(card => {
   window.allPlayers = Object.fromEntries(players.map(p => [p.id, p]));
 }
 
-// Render each team as card list
+// Render each team sorted as: attacker > defender > goalkeeper > others
 function renderTeam(containerId, team) {
   const container = document.getElementById(containerId);
-  container.innerHTML = team.map(p => `
+
+  const orderMap = {
+    attacker: 1,
+    defender: 2,
+    goalkeeper: 3
+  };
+
+  const sorted = [...team].sort((a, b) => {
+    const aPos = orderMap[a.position.toLowerCase()] || 4;
+    const bPos = orderMap[b.position.toLowerCase()] || 4;
+    return aPos - bPos;
+  });
+
+  container.innerHTML = sorted.map(p => `
     <div class="player">
       <img src="images/${p.id}.jpg" alt="${p.name}" onerror="this.onerror=null;this.src='images/default.jpg';">
       <h3>${p.name} – ${p.position}</h3>
@@ -93,10 +110,13 @@ window.generateFromSelection = function () {
     .map(cb => cb.value);
   const selected = checked.map(id => window.allPlayers[id]);
 
+  // Clear old teams
+  document.getElementById("teamA").innerHTML = "";
+  document.getElementById("teamB").innerHTML = "";
+
   const { teamA, teamB } = balanceTeams(selected);
   renderTeam("teamA", teamA);
   renderTeam("teamB", teamB);
 };
 
 showSelector();
-
