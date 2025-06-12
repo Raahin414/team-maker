@@ -7,100 +7,77 @@ function playerScore(p) {
   return (gpm * 3) + (p.goals * 1.5) + (p.matches * 0.5);
 }
 
-// Enhanced team balancing with tier and star logic
+// Advanced team balancing logic
 function balanceTeams(players) {
-  const keepers = players.filter(p => p.position?.toLowerCase() === "goalkeeper");
-  const defenders = players.filter(p => p.position?.toLowerCase() === "defender");
-  const attackers = players.filter(p => p.position?.toLowerCase() === "attacker");
-  const others = players.filter(p => !["goalkeeper", "defender", "attacker"].includes(p.position?.toLowerCase()));
+  const keepers = players.filter(p => p.position.toLowerCase() === "goalkeeper");
+  const defenders = players.filter(p => p.position.toLowerCase() === "defender");
+  const attackers = players.filter(p => p.position.toLowerCase() === "attacker");
+  const others = players.filter(p => !["goalkeeper", "defender", "attacker"].includes(p.position.toLowerCase()));
 
   const teamA = [], teamB = [];
+  let starA = 0, starB = 0;
 
-  if (keepers.length > 0) teamA.push(keepers[0]);
-  if (keepers.length > 1) teamB.push(keepers[1]);
+  // 1. Force split keepers
+  keepers.forEach((keeper, i) => {
+    if (i % 2 === 0) teamA.push(keeper);
+    else teamB.push(keeper);
+  });
 
-  // Normalize stars and tiers for attackers
-  const normalizedAttackers = attackers.map(p => ({
-    ...p,
-    stars: Math.max(2, Math.min(4, p.stars ?? 2)),
-    tier: Math.max(1, Math.min(3, p.tier ?? 3))
-  }));
+  // 2. Sort attackers by tier first, then stars
+  attackers.sort((a, b) => {
+    if (a.tier !== b.tier) return a.tier - b.tier;
+    return b.stars - a.stars;
+  });
 
-  const bestSplit = findBestAttackerSplit(normalizedAttackers);
-  teamA.push(...bestSplit.teamA);
-  teamB.push(...bestSplit.teamB);
-
-  const diff = Math.abs(bestSplit.starA - bestSplit.starB);
-  if (diff > 1) {
-    defenders.forEach(def => {
-      if (bestSplit.starA < bestSplit.starB) teamA.push(def);
-      else teamB.push(def);
-    });
-  } else {
-    defenders.forEach((def, i) => {
-      if (i % 2 === 0) teamA.push(def);
-      else teamB.push(def);
-    });
+  // 3. Distribute attackers by tier groups
+  const tierGroups = {};
+  for (let atk of attackers) {
+    const t = atk.tier;
+    if (!tierGroups[t]) tierGroups[t] = [];
+    tierGroups[t].push(atk);
   }
 
-  others.forEach((p, i) => {
-    if (i % 2 === 0) teamA.push(p);
-    else teamB.push(p);
+  Object.keys(tierGroups).sort((a, b) => a - b).forEach(tier => {
+    const group = tierGroups[tier];
+    group.sort((a, b) => b.stars - a.stars);
+    group.forEach((atk, i) => {
+      const stars = atk.stars || 0;
+      if (starA <= starB) {
+        teamA.push(atk);
+        starA += stars;
+      } else {
+        teamB.push(atk);
+        starB += stars;
+      }
+    });
+  });
+
+  // 4. Fallback: Distribute defenders ONLY after attackers/tiers are done
+  defenders.forEach((def, i) => {
+    if (teamA.length <= teamB.length) teamA.push(def);
+    else teamB.push(def);
+  });
+
+  // 5. Others by score
+  others.sort((a, b) => playerScore(b) - playerScore(a));
+  let scoreA = teamA.reduce((sum, p) => sum + playerScore(p), 0);
+  let scoreB = teamB.reduce((sum, p) => sum + playerScore(p), 0);
+
+  others.forEach(p => {
+    const s = playerScore(p);
+    if (scoreA <= scoreB) {
+      teamA.push(p);
+      scoreA += s;
+    } else {
+      teamB.push(p);
+      scoreB += s;
+    }
   });
 
   return { teamA, teamB };
 }
 
-// Exhaustive split on tier first, then star sum
-function findBestAttackerSplit(attackers) {
-  const n = attackers.length;
-  let bestDiff = Infinity;
-  let bestTierDiff = Infinity;
-  let bestTeamA = [], bestTeamB = [];
-  let bestScoreA = 0, bestScoreB = 0;
-
-  const totalComb = 1 << n;
-  for (let mask = 0; mask < totalComb; mask++) {
-    const teamA = [], teamB = [];
-    let scoreA = 0, scoreB = 0;
-    let tierA = 0, tierB = 0;
-
-    for (let i = 0; i < n; i++) {
-      const player = attackers[i];
-      if ((mask & (1 << i)) === 0) {
-        teamA.push(player);
-        scoreA += player.stars;
-        tierA += player.tier;
-      } else {
-        teamB.push(player);
-        scoreB += player.stars;
-        tierB += player.tier;
-      }
-    }
-
-    const starDiff = Math.abs(scoreA - scoreB);
-    const tierDiff = Math.abs(tierA - tierB);
-
-    if (tierDiff < bestTierDiff || (tierDiff === bestTierDiff && starDiff < bestDiff)) {
-      bestDiff = starDiff;
-      bestTierDiff = tierDiff;
-      bestTeamA = teamA;
-      bestTeamB = teamB;
-      bestScoreA = scoreA;
-      bestScoreB = scoreB;
-    }
-
-    if (bestDiff === 0 && bestTierDiff === 0) break;
-  }
-
-  return {
-    teamA: bestTeamA,
-    teamB: bestTeamB,
-    starA: bestScoreA,
-    starB: bestScoreB
-  };
-}
-
+// Selector view with card click support and image fallback
 export async function showSelector() {
   const snapshot = await getDocs(collection(db, "players"));
   const players = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -127,15 +104,10 @@ export async function showSelector() {
   window.allPlayers = Object.fromEntries(players.map(p => [p.id, p]));
 }
 
+// Render each team sorted: attacker > defender > goalkeeper > others
 function renderTeam(containerId, team) {
   const container = document.getElementById(containerId);
-
-  const orderMap = {
-    attacker: 1,
-    defender: 2,
-    goalkeeper: 3
-  };
-
+  const orderMap = { attacker: 1, defender: 2, goalkeeper: 3 };
   const sorted = [...team].sort((a, b) => {
     const aPos = orderMap[a.position.toLowerCase()] || 4;
     const bPos = orderMap[b.position.toLowerCase()] || 4;
@@ -151,15 +123,14 @@ function renderTeam(containerId, team) {
   `).join('');
 }
 
+// Team generation on button click
 window.generateFromSelection = function () {
   const checked = Array.from(document.querySelectorAll('#playerSelector input[type="checkbox"]:checked'))
     .map(cb => cb.value);
   const selected = checked.map(id => window.allPlayers[id]);
 
-  document.getElementById("teamA").innerHTML = "";
-  document.getElementById("teamB").innerHTML = "";
-
   const { teamA, teamB } = balanceTeams(selected);
+
   renderTeam("teamA", teamA);
   renderTeam("teamB", teamB);
 };
